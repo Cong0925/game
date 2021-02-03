@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+
+    </style>
+</head>
+
+<body style="padding: 0; margin: 0;">
+    <script src="./pixi.min.js"></script>
+    <script>
+
+
+        let Application = PIXI.Application,
+            Container = PIXI.Container,
+            loader = PIXI.loader,
+            resources = PIXI.loader.resources,
+            Graphics = PIXI.Graphics,
+            TextureCache = PIXI.utils.TextureCache,
+            Sprite = PIXI.Sprite,
+            Text = PIXI.Text,
+            TextStyle = PIXI.TextStyle;
+        let app = new Application({
+            width: window.innerWidth,
+            height: window.innerHeight,
+            antialiasing: true,
+            transparent: false,
+            resolution: 1
+        });
+        app.renderer.backgroundColor = 0x999999;
+        document.body.appendChild(app.view);
+        window.addEventListener("resize", function () {
+            app.renderer.resize(window.innerWidth, window.innerHeight);
+        });
+
+        let state, explorer, treasure, blobs, chimes, exit, player, dungeon,
+            door, healthBar, message, gameScene, gameOverScene, enemies, id;
+        let cat, hedgehog, tiger, aaa;
+        let p=30;
+        loader
+            .add("images/tileset.json")
+            .add("images/treasureHunter.json")
+            .load(setup);
+
+        function setup() {
+            //Make the game scene and add it to the stage
+            gameScene = new Container();
+            app.stage.addChild(gameScene);
+            id = resources["images/treasureHunter.json"].textures;
+            id1 = resources["images/tileset.json"].textures;
+            //Dungeon
+            dungeon = new Sprite(id["dungeon.png"]);
+            gameScene.addChild(dungeon);
+            //Treasure
+            treasure = new Sprite(id["treasure.png"]);
+            treasure.x = p * 8;
+            treasure.y = p * 15;
+            gameScene.addChild(treasure);
+            //Door
+            door = new Sprite(id["door.png"]);
+            door.position.set(30, 0);
+            gameScene.addChild(door);
+            //Explorer
+            explorer = new Sprite(id["explorer.png"]);
+            explorer.x = 30;
+            explorer.y = 30;
+            explorer.vx = 0;
+            explorer.vy = 0;
+            gameScene.addChild(explorer);
+
+            cat = new Sprite(id1["cat.png"]);
+            cat.position.set(3, 300);
+            gameScene.addChild(cat);
+
+
+
+            //Set the game state
+            state = play;
+
+            //Start the game loop
+            app.ticker.add(delta => gameLoop(delta));
+        }
+
+        function gameLoop(delta) {
+
+            //Update the current game state:
+            state(delta);
+        }
+
+        function play(delta) {
+        }
+    </script>
+</body>
+
+</html>

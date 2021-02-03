@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <script id="youxi" src="./pixi.min.js"></script>
+    <script>
+
+        let Application = PIXI.Application,
+            Container = PIXI.Container,
+            loader = PIXI.loader,
+            resources = PIXI.loader.resources,
+            Graphics = PIXI.Graphics,
+            TextureCache = PIXI.utils.TextureCache,
+            Sprite = PIXI.Sprite,
+            Text = PIXI.Text,
+            TextStyle = PIXI.TextStyle;
+
+        let app = new PIXI.Application({
+            width: window.innerWidth,
+            height: window.innerHeight,
+            antialiasing: true,
+            transparent: false,
+            resolution: 1
+        });
+        app.renderer.backgroundColor = 0x999999;
+        document.body.appendChild(app.view);
+        window.addEventListener("resize", function () {
+            app.renderer.resize(window.innerWidth, window.innerHeight);
+        });
+
+        PIXI.loader
+            .add("images/cat.png")
+            .load(setup);
+
+        let state, explorer, treasure, blobs, chimes, exit, player, dungeon,
+            door, healthBar, message, gameScene, gameOverScene, enemies, id, cat;
+
+        function setup() {
+            // cat
+            cat = new PIXI.Sprite(PIXI.loader.resources["images/cat.png"].texture);
+            cat.height = 65;
+            cat.width = 65;
+            cat.x = 0;
+            cat.y = 250;
+            cat.vx = 0;
+            cat.vy = 0;
+            app.stage.addChild(cat);
+
+
+
+
+            let rectangle = new PIXI.Graphics();
+            rectangle.lineStyle(4, 0xFF0000, 1);
+            rectangle.beginFill(0xff0000);
+            rectangle.drawRect(0, 0, 500, 64);
+            rectangle.endFill();
+            rectangle.x = 0;
+            rectangle.y = 513;
+            app.stage.addChild(rectangle);
+
+            let rectangle1 = new PIXI.Graphics();
+            rectangle1.lineStyle(4, 0xFF0000, 1);
+            rectangle1.beginFill(0xff0000);
+            rectangle1.drawRect(0, 0, 80, 64);
+            rectangle1.endFill();
+            rectangle1.x = 600;
+            rectangle1.y = 513;
+            app.stage.addChild(rectangle1);
+
+
+            //Make the blobs
+            let numberOfrectangles = 8,
+                //An array to store all the blob monsters
+                rectangles = [];
+            //Make as many blobs as there are `numberOfBlobs`
+            for (let i = 1; i < numberOfrectangles; i++) {
+                let rectangle1 = new PIXI.Graphics();
+                rectangle1.lineStyle(4, 0xFF0000, 1);
+                rectangle1.beginFill(0xff0000);
+                rectangle1.drawRect(0, 0, 70, 64);
+                rectangle1.endFill();
+                rectangle1.x = 600 + 150 * i;
+                rectangle1.y = 513;
+                rectangles.push(rectangle1);
+                app.stage.addChild(rectangle1);
+            }
+
+
+
+            let triangle = new Graphics();
+            triangle.beginFill(0x66FF33);
+
+            triangle.drawPolygon([
+                100, 515,             //First point
+                130, 500,              //Second point
+                160, 515,                 //Third point
+            ]);
+
+            triangle.endFill();
+
+            triangle.x = 180;
+            triangle.y = 22;
+
+            app.stage.addChild(triangle);
+
+
+            //Capture the keyboard arrow keys
+            let left = keyboard(37),
+                up = keyboard(38),
+                right = keyboard(39),
+                down = keyboard(40);
+            space = keyboard(32);
+
+            //space
+            space.press = function () {
+                cat.vy = -5;
+                cat.vx = 0;
+            };
+            space.release = function () {
+                cat.vy = 0;
+            };
+            //Left arrow key `press` method
+            left.press = function () {
+                cat.vx = -5;
+                cat.vy = 0;
+            };
+
+            //Left arrow key `release` method
+            left.release = function () {
+                cat.vx = 0;
+            };
+
+            //Up
+            up.press = function () {
+                cat.vy = -5;
+                cat.vx = 0;
+            };
+            up.release = function () {
+                cat.vy = 0;
+            };
+
+            //Right
+            right.press = function () {
+                cat.vx = 5;
+                cat.vy = 0;
+            };
+            right.release = function () {
+                cat.vx = 0;
+            };
+
+            //Down
+            down.press = function () {
+                cat.vy = 5;
+                cat.vx = 0;
+            };
+            down.release = function () {
+                cat.vy = 0;
+            };
+
+            state = play;
+
+            app.ticker.add(delta => gameLoop(delta));
+        }
+
+        function gameLoop(delta) {
+            state(delta);
+        }
+
+        function play(delta) {
+            cat.x += cat.vx * delta;
+            cat.y += cat.vy * delta;
+            physicalCat(delta);
+        }
+
+        var gravity = -0.1;
+        var groundTop = 513;
+        function isCollisionCatAndGround() {
+            var catBottom = cat.y + cat.height;
+            return catBottom >= groundTop;
+        }
+        function physicalCat(delta) {
+            if (isCollisionCatAndGround()) {
+                if (cat.vy >= 0) {
+                    cat.vy = 0;
+                    return;
+                }
+            }
+            cat.vy -= gravity * delta;
+        }
+
+
+        // 碰撞需要
+        function hitTestRectangle(r1, r2) {
+
+            //Define the variables we'll need to calculate
+            let hit, combinedHalfWidths, combinedHalfHeights, vx, vy;
+
+            //hit will determine whether there's a collision
+            hit = false;
+
+            //Find the center points of each sprite
+            r1.centerX = r1.x + r1.width / 2;
+            r1.centerY = r1.y + r1.height / 2;
+            r2.centerX = r2.x + r2.width / 2;
+            r2.centerY = r2.y + r2.height / 2;
+
+            //Find the half-widths and half-heights of each sprite
+            r1.halfWidth = r1.width / 2;
+            r1.halfHeight = r1.height / 2;
+            r2.halfWidth = r2.width / 2;
+            r2.halfHeight = r2.height / 2;
+
+            //Calculate the distance vector between the sprites
+            vx = r1.centerX - r2.centerX;
+            vy = r1.centerY - r2.centerY;
+
+            //Figure out the combined half-widths and half-heights
+            combinedHalfWidths = r1.halfWidth + r2.halfWidth;
+            combinedHalfHeights = r1.halfHeight + r2.halfHeight;
+
+            //Check for a collision on the x axis
+            if (Math.abs(vx) < combinedHalfWidths) {
+
+                //A collision might be occuring. Check for a collision on the y axis
+                if (Math.abs(vy) < combinedHalfHeights) {
+
+                    //There's definitely a collision happening
+                    hit = true;
+                } else {
+
+                    //There's no collision on the y axis
+                    hit = false;
+                }
+            } else {
+
+                //There's no collision on the x axis
+                hit = false;
+            }
+
+            //`hit` will be either `true` or `false`
+            return hit;
+        };
+
+        //The `keyboard` helper function
+        function keyboard(keyCode) {
+            var key = {};
+            key.code = keyCode;
+            key.isDown = false;
+            key.isUp = true;
+            key.press = undefined;
+            key.release = undefined;
+            //The `downHandler`
+            key.downHandler = function (event) {
+                if (event.keyCode === key.code) {
+                    if (key.isUp && key.press) key.press();
+                    key.isDown = true;
+                    key.isUp = false;
+                }
+                event.preventDefault();
+            };
+
+            //The `upHandler`
+            key.upHandler = function (event) {
+                if (event.keyCode === key.code) {
+                    if (key.isDown && key.release) key.release();
+                    key.isDown = false;
+                    key.isUp = true;
+                }
+                event.preventDefault();
+            };
+
+            //Attach event listeners
+            window.addEventListener(
+                "keydown", key.downHandler.bind(key), false
+            );
+            window.addEventListener(
+                "keyup", key.upHandler.bind(key), false
+            );
+            return key;
+        }
+
+    </script>
+</body>
+
+</html>
